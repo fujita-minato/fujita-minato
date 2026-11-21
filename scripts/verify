@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Minimal checks for the profile README assets.
+# Usage: scripts/verify [svg-dir]   (default: assets)
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+dir="${1:-assets}"
+
+printf '▶ generator runs on fixture data\n'
+tmp="$(mktemp -d)"
+python3 - "$tmp/cal.json" <<'PY'
+import json, sys
+json.dump([[(w * 7 + d) % 20 for d in range(7)] for w in range(53)], open(sys.argv[1], "w"))
+PY
+python3 scripts/generate.py --fixture "$tmp/cal.json" --out "$tmp"
+
+python3 -B - "$tmp" <<'PY'
+from datetime import date, timedelta
+from io import BytesIO
+from pathlib import Path
+import sys
+from unittest.mock import patch
+
+sys.path.insert(0, 'scripts')
+import generate
+
+print('▶ public calendar keeps the first and last of 54 weeks')
+start = date(2024, 1, 6)
+cells = []
+for i in range(366):
+    cells.append(f'<td data-date="{start + timedelta(days=i)}" id="d{i}" data-level="2"></td>')
+    label = {0: '12 contributions', 365: '1 contribution'}.get(i, 'No contributions')
+    if i != 1:
+        cells.append(f'<tool-tip for="d{i}">{label} on a date.</tool-tip>')
+with patch.object(generate, 'urlopen', return_value=BytesIO(''.join(cells).encode())) as request:
+    weeks = generate.load_calendar(None)
+    request.assert_called_once_with('https://github.com/users/fujita-minato/contributions', timeout=30)
+assert len(weeks) == 54 and weeks[0] == [0, 0, 0, 0, 0, 0, 12]
+assert weeks[1][0] == 2 and weeks[-1] == [1, 0, 0, 0, 0, 0, 0]
+svg = generate.render(weeks, '', 'light')
+assert '15 contributions · 3 active days' in svg and 'viewBox="0 7 855 171"' in svg
+assert svg.count('class="week"') == 54 and 'transform: translate(825px,' in svg
+
+print('▶ second SVG replacement fails after the first changes, then both originals survive')
+out = Path(sys.argv[1])
+first, second = (out / f'pip-patrol-{theme}.svg' for theme in ('light', 'dark'))
+originals = first.read_bytes(), second.read_bytes()
+replace = generate.os.replace
+
+def fail_second(source, target):
+    if target == second:
+        assert first.read_bytes() == b'new light'
+        raise OSError('simulated second replacement failure')
+    replace(source, target)
+
+with patch.object(generate.os, 'replace', side_effect=fail_second) as attempted:
+    try:
+        generate.write_images(out, {'light': b'new light', 'dark': b'new dark'})
+    except OSError as error:
+        assert str(error) == 'simulated second replacement failure'
+    else:
+        raise AssertionError('expected the second replacement to fail')
+    assert [call.args[1] for call in attempted.call_args_list] == [first, second, first]
+assert (first.read_bytes(), second.read_bytes()) == originals
+assert not list(out.glob('.pip-patrol-*'))
+PY
+
+python3 - "$tmp" "$dir" <<'PY'
+import re, sys, pathlib
+import xml.etree.ElementTree as ET
+
+
+def check_svgs(directory):
+    print(f"▶ SVG checks in {directory}")
+    failures = []
+    for name in ("pip-patrol-light.svg", "pip-patrol-dark.svg"):
+        p = directory / name
+        if not p.is_file():
+            failures.append(f"{p}: missing")
+            continue
+        text = p.read_text(encoding="utf-8")
+        try:
+            ET.fromstring(text)
+        except ET.ParseError as e:
+            failures.append(f"{p}: invalid XML ({e})")
+        for bad in ("feTurbulence", "feDisplacementMap"):
+            if bad in text:
+                failures.append(f"{p}: contains {bad}")
+        links = [u for u in re.findall(r"https?://[^\s\"'<>)]+", text) if u != "http://www.w3.org/2000/svg"]
+        if links:
+            failures.append(f"{p}: external link {links[0]}")
+        if p.stat().st_size > 300_000:
+            failures.append(f"{p}: larger than 300 KB")
+    return failures
+
+
+fail = check_svgs(pathlib.Path(sys.argv[1])) + check_svgs(pathlib.Path(sys.argv[2]))
+if fail:
+    print("\n".join("✗ " + f for f in fail)); sys.exit(1)
+print("✅ verify 通过")
+PY

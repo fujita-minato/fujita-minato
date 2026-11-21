@@ -1,5 +1,10 @@
 ### Fujita Minato — Cloud & Robotics Engineer · Tokyo
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/pip-patrol-dark.svg">
+  <img alt="Pip the robot patrolling Fujita Minato's GitHub contribution graph" src="assets/pip-patrol-light.svg" width="100%">
+</picture>
+
 From operational needs to working platforms.
 
 At Honda R&D, I guide technical direction and delivery for a robotics cloud platform, weighing architecture trade-offs with in-house engineers and external partners.
