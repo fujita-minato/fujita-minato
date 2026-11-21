@@ -1,15 +1,10 @@
 ### Fujita Minato — Cloud & Robotics Engineer · Tokyo
 
-From operational needs to working platforms.
-
-At Honda R&D, I guide technical direction and delivery for a robotics cloud platform, weighing architecture trade-offs with in-house engineers and external partners.
+At Honda R&D, I turn operational needs into requirements and design choices, working with engineers and development partners. I’m interested in strategy consulting and new business development in manufacturing and mobility.
 
 **Selected work**
 
-- **Robotics cloud platform**: new robots can join the platform through one focused integration.
-- **Monitoring system**: repeated user trials helped refine working prototypes.
-- **Cloud infrastructure and remote operation**: repeatable environments for development and testing.
+- [Field monitoring prototype / 現場向けの監視プロトタイプ](docs/monitoring-prototype-ja.md)
+- [More engineering case studies](https://fujitaminato.com/#work)
 
-Open to technology consulting and solutions architecture roles.
-
-[fujitaminato.com](https://fujitaminato.com) · [LinkedIn](https://www.linkedin.com/in/minato-fujita-642a23221)
+[Portfolio](https://fujitaminato.com/) · [LinkedIn](https://www.linkedin.com/in/minato-fujita/)
