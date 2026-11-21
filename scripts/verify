@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Minimal checks for the profile README assets.
+# Usage: scripts/verify [svg-dir]   (default: assets)
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+dir="${1:-assets}"
+
+printf '▶ generator runs on fixture data\n'
+tmp="$(mktemp -d)"
+python3 - "$tmp/cal.json" <<'PY'
+import json, sys
+json.dump([[(w * 7 + d) % 20 for d in range(7)] for w in range(53)], open(sys.argv[1], "w"))
+PY
+python3 scripts/generate.py --fixture "$tmp/cal.json" --out "$tmp"
+
+printf '▶ SVG checks in %s\n' "$dir"
+python3 - "$dir" <<'PY'
+import re, sys, pathlib
+import xml.etree.ElementTree as ET
+d = pathlib.Path(sys.argv[1])
+fail = []
+for name in ("pip-patrol-light.svg", "pip-patrol-dark.svg"):
+    p = d / name
+    if not p.is_file():
+        fail.append(f"{p}: missing"); continue
+    text = p.read_text(encoding="utf-8")
+    try:
+        ET.fromstring(text)
+    except ET.ParseError as e:
+        fail.append(f"{p}: invalid XML ({e})")
+    for bad in ("feTurbulence", "feDisplacementMap"):
+        if bad in text:
+            fail.append(f"{p}: contains {bad}")
+    links = [u for u in re.findall(r"https?://[^\s\"'<>)]+", text) if u != "http://www.w3.org/2000/svg"]
+    if links:
+        fail.append(f"{p}: external link {links[0]}")
+    if p.stat().st_size > 300_000:
+        fail.append(f"{p}: larger than 300 KB")
+if fail:
+    print("\n".join("✗ " + f for f in fail)); sys.exit(1)
+print("✅ verify 通过")
+PY
