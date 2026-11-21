@@ -6,9 +6,11 @@ from base64 import b64encode
 from datetime import date
 import json
 import math
+import os
 from pathlib import Path
 import random
 import subprocess
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -169,8 +171,20 @@ def main():
     if any(len(svg) > 300_000 for svg in images.values()):
         parser.exit(1, 'Pip patrol SVG exceeds 300 KB\n')
     args.out.mkdir(parents=True, exist_ok=True)
-    for theme, svg in images.items():
-        (args.out / f'pip-patrol-{theme}.svg').write_bytes(svg)
+    staged = {}
+    try:
+        for theme, svg in images.items():
+            target = args.out / f'pip-patrol-{theme}.svg'
+            with tempfile.NamedTemporaryFile(
+                dir=args.out, prefix=f'.{target.name}.', suffix='.tmp', delete=False,
+            ) as temporary:
+                staged[target] = Path(temporary.name)
+                temporary.write(svg)
+        for target, temporary in staged.items():
+            os.replace(temporary, target)
+    finally:
+        for temporary in staged.values():
+            temporary.unlink(missing_ok=True)
     return 0
 
 
