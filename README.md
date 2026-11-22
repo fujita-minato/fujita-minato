@@ -5,6 +5,6 @@
   <img alt="Pip the robot patrolling Fujita Minato's GitHub contribution graph" src="assets/pip-patrol-light.svg" width="100%">
 </picture>
 
-At Honda R&D, I turn operational needs into requirements and design choices, working with engineers and development partners.
+At Honda R&D, I turn operational needs into requirements and design choices, and I’m looking to build AI products next.
 
-[fujitaminato.com](https://fujitaminato.com) · [LinkedIn](https://www.linkedin.com/in/minato-fujita/)
+[Portfolio](https://fujitaminato.com/) · [LinkedIn](https://www.linkedin.com/in/minato-fujita/)
